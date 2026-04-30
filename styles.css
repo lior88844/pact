@@ -1,0 +1,121 @@
+/* Pact — Light-first design tokens */
+@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* light base — warm off-white */
+  --bg-0: oklch(0.985 0.003 90);
+  --bg-1: oklch(0.975 0.004 90);
+  --bg-2: oklch(0.96 0.005 90);
+  --bg-3: oklch(0.93 0.006 90);
+  --card: #ffffff;
+  --line: oklch(0.88 0.005 90);
+  --hairline: oklch(0.92 0.005 90);
+
+  --ink-0: oklch(0.18 0.008 250);
+  --ink-1: oklch(0.30 0.010 250);
+  --ink-2: oklch(0.50 0.010 250);
+  --ink-3: oklch(0.66 0.008 250);
+  --ink-4: oklch(0.78 0.006 250);
+
+  /* you = warm desaturated gold */
+  --you: oklch(0.62 0.13 70);
+  --you-dim: oklch(0.72 0.10 70);
+  --you-soft: oklch(0.95 0.03 70);
+  --you-glow: oklch(0.62 0.13 70 / 0.10);
+
+  /* partner = cool slate */
+  --pal: oklch(0.50 0.07 240);
+  --pal-dim: oklch(0.62 0.06 240);
+  --pal-soft: oklch(0.95 0.015 240);
+  --pal-glow: oklch(0.50 0.07 240 / 0.10);
+
+  --ok: oklch(0.55 0.13 150);
+  --warn: oklch(0.65 0.15 50);
+
+  --display: 'Inter Tight', -apple-system, system-ui, sans-serif;
+  --body: 'Inter', -apple-system, system-ui, sans-serif;
+  --editorial: 'Newsreader', Georgia, serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --shadow-card: 0 1px 2px rgba(20, 18, 12, 0.04), 0 6px 20px -8px rgba(20, 18, 12, 0.06);
+  --shadow-pop: 0 1px 2px rgba(20, 18, 12, 0.05), 0 16px 40px -12px rgba(20, 18, 12, 0.12);
+}
+
+* { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+
+html, body {
+  margin: 0; padding: 0;
+  background: #14130f;
+  font-family: var(--body);
+  color: var(--ink-0);
+  overflow-x: hidden;
+}
+
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; padding: 0; }
+input, textarea { font-family: inherit; }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+.tnum { font-variant-numeric: tabular-nums; }
+.display { font-family: var(--display); letter-spacing: -0.025em; }
+.editorial { font-family: var(--editorial); letter-spacing: -0.01em; }
+.tracked { letter-spacing: 0.16em; text-transform: uppercase; font-size: 11px; font-weight: 600; }
+
+.pact-stage {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(120% 70% at 50% -10%, oklch(0.97 0.018 70 / 0.7), transparent 55%),
+    radial-gradient(140% 80% at 50% 110%, oklch(0.96 0.014 240 / 0.5), transparent 60%),
+    var(--bg-0);
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.16); }
+  100% { transform: scale(1); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes draw-check {
+  from { stroke-dashoffset: 22; }
+  to { stroke-dashoffset: 0; }
+}
+
+.fade-up { animation: fade-up 380ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.check-stroke {
+  stroke-dasharray: 22;
+  animation: draw-check 320ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes ring-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.55; }
+  50% { transform: scale(1.06); opacity: 0.85; }
+}
+.ring-breathe { animation: ring-breathe 3.6s ease-in-out infinite; }
+
+@keyframes hero-rise {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.hero-rise { animation: hero-rise 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+@keyframes chip-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.08); }
+  100% { transform: scale(1.03); }
+}
+.chip-pop { animation: chip-pop 280ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+@keyframes row-strike {
+  0% { background: transparent; }
+  30% { background: var(--you-glow); }
+  100% { background: transparent; }
+}
+.row-strike { animation: row-strike 600ms ease-out; }

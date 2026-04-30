@@ -1,0 +1,63 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function userDoc(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data;
+    }
+
+    function arePaired(uidA, uidB) {
+      let userA = userDoc(uidA);
+      let userB = userDoc(uidB);
+      return userA.pairId != null
+        && userA.pairId == userB.pairId;
+    }
+
+    function isPairMember(pairId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/pairs/$(pairId))
+        && request.auth.uid in get(/databases/$(database)/documents/pairs/$(pairId)).data.memberIds;
+    }
+
+    match /users/{uid} {
+      allow read: if isSelf(uid) || (signedIn() && arePaired(request.auth.uid, uid));
+      allow create, update, delete: if isSelf(uid);
+    }
+
+    match /inviteCodes/{code} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && !exists(/databases/$(database)/documents/inviteCodes/$(code));
+      allow update, delete: if false;
+    }
+
+    match /pairs/{pairId} {
+      allow read: if isPairMember(pairId);
+      allow create: if signedIn();
+      allow update, delete: if false;
+    }
+
+    match /dailyEntries/{entryId} {
+      allow read: if signedIn()
+        && (
+          request.auth.uid == resource.data.userId
+          || isPairMember(resource.data.pairId)
+        );
+
+      allow create: if signedIn()
+        && request.auth.uid == request.resource.data.userId
+        && isPairMember(request.resource.data.pairId);
+
+      allow update, delete: if signedIn()
+        && request.auth.uid == resource.data.userId;
+    }
+  }
+}
