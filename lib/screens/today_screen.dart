@@ -79,6 +79,8 @@ class TodayScreen extends StatelessWidget {
                   UserToggle(
                     isYou: isYou,
                     onChanged: state.setView,
+                    youLabel: state.currentUserName,
+                    partnerLabel: state.partnerName,
                   )
                       .animate(delay: 40.ms)
                       .fadeIn(duration: 300.ms, curve: Curves.easeOutCubic),

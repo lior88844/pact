@@ -51,10 +51,30 @@ class SettingsScreen extends StatelessWidget {
               const SizedBox(height: 10),
               _SettingsGroup(
                 rows: [
-                  (icon: LucideIcons.user, label: 'Your profile', value: state.currentUserName),
-                  (icon: LucideIcons.heart, label: 'Partner', value: state.partnerName),
-                  (icon: LucideIcons.bell, label: 'Daily reminder', value: '7:00 AM'),
-                  (icon: LucideIcons.lock, label: 'Privacy', value: null),
+                  (
+                    icon: LucideIcons.user,
+                    label: 'Your profile',
+                    value: state.currentUserName,
+                    onTap: () => _showEditNameDialog(context, state),
+                  ),
+                  (
+                    icon: LucideIcons.heart,
+                    label: 'Partner',
+                    value: state.partnerName,
+                    onTap: null,
+                  ),
+                  (
+                    icon: LucideIcons.bell,
+                    label: 'Daily reminder',
+                    value: '7:00 AM',
+                    onTap: null,
+                  ),
+                  (
+                    icon: LucideIcons.lock,
+                    label: 'Privacy',
+                    value: null,
+                    onTap: null,
+                  ),
                 ],
               ).animate(delay: 80.ms).fadeIn(duration: 300.ms, curve: Curves.easeOutCubic),
 
@@ -65,8 +85,18 @@ class SettingsScreen extends StatelessWidget {
               const SizedBox(height: 10),
               _SettingsGroup(
                 rows: const [
-                  (icon: LucideIcons.settings, label: 'Appearance', value: 'Light'),
-                  (icon: LucideIcons.messageSquareQuote, label: 'Daily signals', value: 'On'),
+                  (
+                    icon: LucideIcons.settings,
+                    label: 'Appearance',
+                    value: 'Light',
+                    onTap: null,
+                  ),
+                  (
+                    icon: LucideIcons.messageSquareQuote,
+                    label: 'Daily signals',
+                    value: 'On',
+                    onTap: null,
+                  ),
                 ],
               ).animate(delay: 120.ms).fadeIn(duration: 300.ms, curve: Curves.easeOutCubic),
 
@@ -90,6 +120,86 @@ class SettingsScreen extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Future<void> _showEditNameDialog(BuildContext context, PactState state) async {
+    final controller = TextEditingController(text: state.currentUserName);
+    String? errorText;
+    var saving = false;
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Edit your name'),
+              content: TextField(
+                controller: controller,
+                autofocus: true,
+                textInputAction: TextInputAction.done,
+                decoration: InputDecoration(
+                  labelText: 'Name',
+                  errorText: errorText,
+                ),
+                onSubmitted: (_) async {
+                  final candidate = controller.text.trim();
+                  if (candidate.isEmpty) {
+                    setDialogState(() => errorText = 'Name cannot be empty');
+                    return;
+                  }
+                  setDialogState(() {
+                    errorText = null;
+                    saving = true;
+                  });
+                  try {
+                    await state.updateCurrentUserName(candidate);
+                    if (context.mounted) Navigator.of(context).pop();
+                  } catch (_) {
+                    if (!context.mounted) return;
+                    setDialogState(() {
+                      errorText = 'Could not update name. Try again.';
+                      saving = false;
+                    });
+                  }
+                },
+              ),
+              actions: [
+                TextButton(
+                  onPressed: saving ? null : () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: saving
+                      ? null
+                      : () async {
+                          final candidate = controller.text.trim();
+                          if (candidate.isEmpty) {
+                            setDialogState(() => errorText = 'Name cannot be empty');
+                            return;
+                          }
+                          setDialogState(() {
+                            errorText = null;
+                            saving = true;
+                          });
+                          try {
+                            await state.updateCurrentUserName(candidate);
+                            if (context.mounted) Navigator.of(context).pop();
+                          } catch (_) {
+                            if (!context.mounted) return;
+                            setDialogState(() {
+                              errorText = 'Could not update name. Try again.';
+                              saving = false;
+                            });
+                          }
+                        },
+                  child: Text(saving ? 'Saving...' : 'Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -206,7 +316,7 @@ class _SectionLabel extends StatelessWidget {
 }
 
 class _SettingsGroup extends StatelessWidget {
-  final List<({IconData icon, String label, String? value})> rows;
+  final List<({IconData icon, String label, String? value, VoidCallback? onTap})> rows;
   const _SettingsGroup({required this.rows});
 
   @override
@@ -221,6 +331,7 @@ class _SettingsGroup extends StatelessWidget {
             icon: r.icon,
             label: r.label,
             value: r.value,
+            onTap: r.onTap,
             isFirst: i == 0,
           );
         }),
@@ -233,46 +344,54 @@ class _SettingsRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String? value;
+  final VoidCallback? onTap;
   final bool isFirst;
 
   const _SettingsRow({
     required this.icon,
     required this.label,
     this.value,
+    this.onTap,
     this.isFirst = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 18),
-      decoration: BoxDecoration(
-        border: isFirst
-            ? null
-            : const Border(top: BorderSide(color: AppColors.hairline, width: 0.5)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: AppColors.bg2,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, size: 16, color: AppColors.ink1),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          height: 52,
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          decoration: BoxDecoration(
+            border: isFirst
+                ? null
+                : const Border(top: BorderSide(color: AppColors.hairline, width: 0.5)),
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(label,
-                style: AppText.body(size: 14, weight: FontWeight.w500, color: AppColors.ink0)),
+          child: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppColors.bg2,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 16, color: AppColors.ink1),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(label,
+                    style: AppText.body(size: 14, weight: FontWeight.w500, color: AppColors.ink0)),
+              ),
+              if (value != null)
+                Text(value!, style: AppText.body(size: 13, color: AppColors.ink2)),
+              const SizedBox(width: 6),
+              Icon(LucideIcons.chevronRight, size: 14, color: AppColors.ink3),
+            ],
           ),
-          if (value != null)
-            Text(value!, style: AppText.body(size: 13, color: AppColors.ink2)),
-          const SizedBox(width: 6),
-          Icon(LucideIcons.chevronRight, size: 14, color: AppColors.ink3),
-        ],
+        ),
       ),
     );
   }

@@ -334,4 +334,23 @@ class PactState extends ChangeNotifier {
     }
     notifyListeners();
   }
+
+  Future<void> updateCurrentUserName(String nextName) async {
+    final profile = me;
+    if (profile == null) return;
+    final trimmed = nextName.trim();
+    if (trimmed.isEmpty || trimmed == profile.displayName) return;
+
+    await _userService.updateDisplayName(uid: profile.uid, displayName: trimmed);
+    me = UserProfile(
+      uid: profile.uid,
+      email: profile.email,
+      displayName: trimmed,
+      inviteCode: profile.inviteCode,
+      pairId: profile.pairId,
+      createdAt: profile.createdAt,
+      updatedAt: profile.updatedAt,
+    );
+    notifyListeners();
+  }
 }

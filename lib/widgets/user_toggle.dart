@@ -5,8 +5,16 @@ import '../theme/tokens.dart';
 class UserToggle extends StatelessWidget {
   final bool isYou;
   final ValueChanged<bool> onChanged;
+  final String youLabel;
+  final String partnerLabel;
 
-  const UserToggle({super.key, required this.isYou, required this.onChanged});
+  const UserToggle({
+    super.key,
+    required this.isYou,
+    required this.onChanged,
+    this.youLabel = 'You',
+    this.partnerLabel = 'Partner',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -49,8 +57,8 @@ class UserToggle extends StatelessWidget {
               // Buttons
               Row(
                 children: [
-                  _ToggleBtn(label: 'You', color: AppColors.you, glow: AppColors.youGlow, active: isYou, onTap: () { HapticFeedback.selectionClick(); onChanged(true); }),
-                  _ToggleBtn(label: 'Maya', color: AppColors.pal, glow: AppColors.palGlow, active: !isYou, onTap: () { HapticFeedback.selectionClick(); onChanged(false); }),
+                  _ToggleBtn(label: youLabel, color: AppColors.you, glow: AppColors.youGlow, active: isYou, onTap: () { HapticFeedback.selectionClick(); onChanged(true); }),
+                  _ToggleBtn(label: partnerLabel, color: AppColors.pal, glow: AppColors.palGlow, active: !isYou, onTap: () { HapticFeedback.selectionClick(); onChanged(false); }),
                 ],
               ),
             ],

@@ -73,6 +73,16 @@ class UserService {
     }, SetOptions(merge: true));
   }
 
+  Future<void> updateDisplayName({
+    required String uid,
+    required String displayName,
+  }) {
+    return _users.doc(uid).set({
+      'displayName': displayName.trim(),
+      'updatedAt': Timestamp.now(),
+    }, SetOptions(merge: true));
+  }
+
   Future<String> generateUniqueInviteCode({
     Transaction? txn,
   }) async {
