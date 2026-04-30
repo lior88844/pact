@@ -200,36 +200,6 @@ final Map<int, DaySnapshot> pastDayData = {
   ),
 };
 
-// ─── Daily insights ───────────────────────────────────────────────────────────
-const List<String> dailyInsights = [
-  "Relationships are one of the strongest predictors of long-term happiness.",
-  "A 25-minute walk can change the trajectory of your day.",
-  "Consistency beats intensity when repeated long enough.",
-  "Sleep is a performance multiplier, not a luxury.",
-  "What you do daily compounds. What you do occasionally doesn't.",
-  "The body keeps the score. Move it, fuel it, rest it.",
-  "Discomfort is the price of admission to a meaningful life.",
-  "You don't rise to the level of your goals; you fall to the level of your systems.",
-  "Showing up on bad days is what separates the disciplined from the rest.",
-  "The most underrated productivity tool is going to bed at the same time.",
-  "Identity precedes outcome. Decide who you are, then act accordingly.",
-  "Boredom is the doorway. Most people walk away from it.",
-  "Your mornings set the tone. Protect the first 90 minutes.",
-  "Hard things become easier. Easy things become habits.",
-  "Compare yourself to who you were yesterday — not to who someone else is today.",
-  "Energy is a renewable resource if you treat it like one.",
-  "Discipline is choosing between what you want now and what you want most.",
-  "The work you avoid is usually the work you most need to do.",
-  "Small wins, repeated, become identity.",
-  "Strong relationships need standards, not just affection.",
-];
-
-String getDailyInsight([DateTime? date]) {
-  final d = date ?? DateTime.now();
-  final epoch = d.millisecondsSinceEpoch ~/ (1000 * 60 * 60 * 24);
-  return dailyInsights[epoch % dailyInsights.length];
-}
-
 // ─── Default task labels ──────────────────────────────────────────────────────
 const List<String> defaultLabels = ['MAIN TASK', 'WORK', 'WORK', 'BODY', 'MIND'];
 

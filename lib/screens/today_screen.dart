@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import '../features/insights/insight_service.dart';
+import '../features/insights/repositories/local_insight_repository.dart';
 import '../models/models.dart';
 import '../state/pact_state.dart';
 import '../theme/tokens.dart';
@@ -11,6 +13,9 @@ import '../widgets/identity_card.dart';
 import '../widgets/mood_selector.dart';
 import '../widgets/task_row.dart';
 import '../widgets/user_toggle.dart';
+
+const InsightService _insightService =
+    InsightService(repository: LocalInsightRepository());
 
 class TodayScreen extends StatelessWidget {
   const TodayScreen({super.key});
@@ -39,7 +44,7 @@ class TodayScreen extends StatelessWidget {
         final isPast = state.isPast;
         final isYou = state.isYouView;
         final snap = state.pastSnapshot;
-        final insight = getDailyInsight(displayDate);
+        final insight = _insightService.getInsightForDate(displayDate).text;
 
         final activeTasks = state.activeTasks;
         final youDone = state.youDone;
@@ -64,9 +69,10 @@ class TodayScreen extends StatelessWidget {
                     dateStr: dateStr,
                     isPast: isPast,
                     dayOffset: state.dayOffset,
-                    onBack: () { HapticFeedback.lightImpact(); state.setDayOffset(state.dayOffset - 1); },
-                    onForward: state.dayOffset < 0
-                        ? () { HapticFeedback.lightImpact(); state.setDayOffset(state.dayOffset + 1); }
+                    canGoBack: state.canGoBack,
+                    onBack: () { HapticFeedback.lightImpact(); state.goToPreviousLoggedDay(); },
+                    onForward: state.canGoForward
+                        ? () { HapticFeedback.lightImpact(); state.goToNextAvailableDay(); }
                         : null,
                   )
                       .animate()
@@ -205,6 +211,7 @@ class _DateHeader extends StatelessWidget {
   final String dateStr;
   final bool isPast;
   final int dayOffset;
+  final bool canGoBack;
   final VoidCallback onBack;
   final VoidCallback? onForward;
 
@@ -213,6 +220,7 @@ class _DateHeader extends StatelessWidget {
     required this.dateStr,
     required this.isPast,
     required this.dayOffset,
+    required this.canGoBack,
     required this.onBack,
     this.onForward,
   });
@@ -235,7 +243,7 @@ class _DateHeader extends StatelessWidget {
             // Back arrow
             _NavArrow(
               icon: LucideIcons.chevronLeft,
-              enabled: dayOffset > -7,
+              enabled: canGoBack,
               onTap: onBack,
             ),
             const SizedBox(width: 6),

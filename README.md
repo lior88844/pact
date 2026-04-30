@@ -46,6 +46,28 @@ It focuses on a clean "today-first" workflow where you can track mood, complete 
    flutter test
    ```
 
+4. Provide Firebase config via `--dart-define` values (recommended for release/CI).
+   Example:
+
+   ```bash
+   flutter run \
+     --dart-define=FIREBASE_WEB_API_KEY=... \
+     --dart-define=FIREBASE_WEB_APP_ID=... \
+     --dart-define=FIREBASE_ANDROID_API_KEY=... \
+     --dart-define=FIREBASE_ANDROID_APP_ID=... \
+     --dart-define=FIREBASE_IOS_API_KEY=... \
+     --dart-define=FIREBASE_IOS_APP_ID=... \
+     --dart-define=FIREBASE_MACOS_API_KEY=... \
+     --dart-define=FIREBASE_MACOS_APP_ID=... \
+     --dart-define=FIREBASE_MESSAGING_SENDER_ID=... \
+     --dart-define=FIREBASE_PROJECT_ID=... \
+     --dart-define=FIREBASE_AUTH_DOMAIN=... \
+     --dart-define=FIREBASE_STORAGE_BUCKET=... \
+     --dart-define=FIREBASE_MEASUREMENT_ID=... \
+     --dart-define=FIREBASE_IOS_BUNDLE_ID=... \
+     --dart-define=FIREBASE_MACOS_BUNDLE_ID=...
+   ```
+
 ## Project Structure
 
 ```text
@@ -63,3 +85,4 @@ lib/
 
 - The app is currently portrait-oriented.
 - Some partner/history data is demo/static to support UI and interaction flows.
+- Keep privileged secrets on your backend. Any value in a mobile/web client should be treated as potentially exposed.

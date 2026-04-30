@@ -12,12 +12,41 @@ class HistoryScreen extends StatelessWidget {
     return Consumer<PactState>(
       builder: (context, state, _) {
         final entries = state.historyEntries;
+        final hasHistory = entries.any(state.entryHasActivity);
         final youAvg = entries.isEmpty
             ? 0.0
             : entries
                     .map((e) => e.tasks.where((t) => t.done).length / e.tasks.length)
                     .reduce((a, b) => a + b) /
                 entries.length;
+
+        if (!hasHistory) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'No history yet',
+                    textAlign: TextAlign.center,
+                    style: AppText.display(
+                      size: 28,
+                      weight: FontWeight.w700,
+                      color: AppColors.ink0,
+                    ),
+                  ).animate().fadeIn(duration: 320.ms).moveY(begin: 4, end: 0, duration: 320.ms),
+                  const SizedBox(height: 10),
+                  Text(
+                    'You are just getting started. Keep showing up today and your streak will grow day by day.',
+                    textAlign: TextAlign.center,
+                    style: AppText.body(size: 14, color: AppColors.ink2),
+                  ).animate(delay: 60.ms).fadeIn(duration: 300.ms),
+                ],
+              ),
+            ),
+          );
+        }
 
         return CustomScrollView(
           physics: const BouncingScrollPhysics(),
@@ -71,53 +100,43 @@ class HistoryScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  if (entries.isEmpty)
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: cardDecoration(),
-                      child: Text(
-                        'No history yet. Complete today and come back tomorrow.',
-                        style: AppText.body(size: 13, color: AppColors.ink2),
-                      ),
-                    ),
-                  if (entries.isNotEmpty)
-                    Container(
-                      decoration: cardDecoration(),
-                      child: Column(
-                        children: entries.map((entry) {
-                          final done = entry.tasks.where((t) => t.done).length;
-                          return Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            decoration: const BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(color: AppColors.hairline, width: 0.5),
-                              ),
+                  Container(
+                    decoration: cardDecoration(),
+                    child: Column(
+                      children: entries.map((entry) {
+                        final done = entry.tasks.where((t) => t.done).length;
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(color: AppColors.hairline, width: 0.5),
                             ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    entry.date,
-                                    style: AppText.body(
-                                      size: 14,
-                                      weight: FontWeight.w600,
-                                      color: AppColors.ink0,
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  '$done/5',
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  entry.date,
                                   style: AppText.body(
-                                    size: 13,
-                                    color: AppColors.ink2,
+                                    size: 14,
+                                    weight: FontWeight.w600,
+                                    color: AppColors.ink0,
                                   ),
                                 ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                      ),
+                              ),
+                              Text(
+                                '$done/5',
+                                style: AppText.body(
+                                  size: 13,
+                                  color: AppColors.ink2,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
                     ),
+                  ),
                 ]),
               ),
             ),

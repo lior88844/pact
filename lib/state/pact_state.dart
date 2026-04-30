@@ -45,6 +45,26 @@ class PactState extends ChangeNotifier {
   // ── Computed ──
   bool get isToday => dayOffset == 0;
   bool get isPast => dayOffset < 0;
+  Set<int> get _pastLoggedOffsets {
+    final today = DateTime.now();
+    final result = <int>{};
+    for (final entry in historyEntries) {
+      if (!_entryHasActivity(entry)) continue;
+      final parsed = DateTime.tryParse(entry.date);
+      if (parsed == null) continue;
+      final daysAgo = DateTime(
+        today.year,
+        today.month,
+        today.day,
+      ).difference(DateTime(parsed.year, parsed.month, parsed.day)).inDays;
+      if (daysAgo > 0) {
+        result.add(-daysAgo);
+      }
+    }
+    return result;
+  }
+  bool get canGoBack => _previousLoggedOffset(dayOffset) != null;
+  bool get canGoForward => dayOffset < 0;
 
   DaySnapshot? get pastSnapshot => isPast ? _loadedSnapshots[dayOffset] : null;
 
@@ -131,6 +151,8 @@ class PactState extends ChangeNotifier {
     return false;
   }
 
+  bool entryHasActivity(DailyEntry entry) => _entryHasActivity(entry);
+
   Future<void> initialize(UserProfile profile) async {
     me = profile;
     await refreshSession();
@@ -199,11 +221,16 @@ class PactState extends ChangeNotifier {
   Future<void> _loadSelectedDay() async {
     if (me == null || me!.pairId == null) return;
     final date = _entryService.dateToLocalYmd(DateTime.now().add(Duration(days: dayOffset)));
-    final myEntry = await _entryService.getOrCreateEntry(
-      userId: me!.uid,
-      pairId: me!.pairId!,
-      date: date,
-    );
+    final myEntry = dayOffset == 0
+        ? await _entryService.getOrCreateEntry(
+            userId: me!.uid,
+            pairId: me!.pairId!,
+            date: date,
+          )
+        : await _entryService.getEntryByUserAndDate(
+            userId: me!.uid,
+            date: date,
+          );
     final partnerEntry = partnerUid == null
         ? null
         : await _entryService.getEntryByUserAndDate(
@@ -211,13 +238,13 @@ class PactState extends ChangeNotifier {
             date: date,
           );
 
-    final youList = _toUiTasks(myEntry.tasks);
+    final youList = myEntry == null ? <Task>[] : _toUiTasks(myEntry.tasks);
     final palList = partnerEntry == null ? makeFreshDay() : _toUiTasks(partnerEntry.tasks);
-    final youMoodValue = _moodFromString(myEntry.state);
+    final youMoodValue = _moodFromString(myEntry?.state);
     final palMoodValue = _moodFromString(partnerEntry?.state);
 
     if (dayOffset == 0) {
-      _activeYouEntryId = myEntry.id;
+      _activeYouEntryId = myEntry?.id;
       youTasks = youList;
       palTasks = palList;
       youMood = youMoodValue;
@@ -274,9 +301,42 @@ class PactState extends ChangeNotifier {
   }
 
   void setDayOffset(int offset) {
-    dayOffset = offset.clamp(-7, 0);
+    dayOffset = offset > 0 ? 0 : offset;
     _loadSelectedDay().then((_) => notifyListeners());
     notifyListeners();
+  }
+
+  int? _previousLoggedOffset(int fromOffset) {
+    int? best;
+    for (final offset in _pastLoggedOffsets) {
+      if (offset >= fromOffset) continue;
+      if (best == null || offset > best) {
+        best = offset;
+      }
+    }
+    return best;
+  }
+
+  int _nextForwardOffset(int fromOffset) {
+    int? best;
+    for (final offset in _pastLoggedOffsets) {
+      if (offset <= fromOffset) continue;
+      if (best == null || offset < best) {
+        best = offset;
+      }
+    }
+    return best ?? 0;
+  }
+
+  void goToPreviousLoggedDay() {
+    final target = _previousLoggedOffset(dayOffset);
+    if (target == null) return;
+    setDayOffset(target);
+  }
+
+  void goToNextAvailableDay() {
+    if (dayOffset >= 0) return;
+    setDayOffset(_nextForwardOffset(dayOffset));
   }
 
   void setYouMood(MoodState? mood) {
