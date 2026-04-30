@@ -35,6 +35,7 @@ class AppColors {
 
   static const Color ok = Color(0xFF3D9B6A);
   static const Color warn = Color(0xFFC49420);
+  static const Color alert = Color(0xFFC44A4A);
 }
 
 // ─── Shadows ──────────────────────────────────────────────────────────────────

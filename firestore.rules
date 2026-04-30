@@ -71,7 +71,8 @@ service cloud.firestore {
     match /dailyEntries/{entryId} {
       allow read: if signedIn()
         && (
-          request.auth.uid == resource.data.userId
+          resource == null
+          || request.auth.uid == resource.data.userId
           || isPairMember(resource.data.pairId)
           || hasOwnPair(resource.data.pairId)
         );
