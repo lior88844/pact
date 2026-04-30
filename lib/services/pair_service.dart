@@ -31,54 +31,65 @@ class PairService {
     required String currentUid,
     required String inviteCode,
   }) async {
-    return _db.runTransaction((txn) async {
-      final meRef = _users.doc(currentUid);
-      final meDoc = await txn.get(meRef);
-      if (!meDoc.exists || meDoc.data() == null) {
-        throw StateError('Current user profile is missing.');
-      }
+    try {
+      return await _db.runTransaction((txn) async {
+        final meRef = _users.doc(currentUid);
+        final meDoc = await txn.get(meRef);
+        if (!meDoc.exists || meDoc.data() == null) {
+          throw StateError('Current user profile is missing.');
+        }
 
-      final meData = meDoc.data()!;
-      if (meData['pairId'] != null) {
-        throw StateError('Current user is already paired.');
-      }
+        final meData = meDoc.data()!;
+        if (meData['pairId'] != null) {
+          throw StateError('Current user is already paired.');
+        }
 
-      final inviteRef = _inviteCodes.doc(inviteCode.trim().toUpperCase());
-      final inviteSnap = await txn.get(inviteRef);
-      final partnerUid = inviteSnap.data()?['uid'] as String?;
-      if (partnerUid == null || partnerUid.isEmpty) {
-        throw StateError('Invite code not found.');
-      }
+        final inviteRef = _inviteCodes.doc(inviteCode.trim().toUpperCase());
+        final inviteSnap = await txn.get(inviteRef);
+        final partnerUid = inviteSnap.data()?['uid'] as String?;
+        if (partnerUid == null || partnerUid.isEmpty) {
+          throw StateError('Invite code not found.');
+        }
 
-      if (partnerUid == currentUid) {
-        throw StateError('You cannot pair with yourself.');
-      }
+        if (partnerUid == currentUid) {
+          throw StateError('You cannot pair with yourself.');
+        }
 
-      final partnerRef = _users.doc(partnerUid);
-      final partnerSnap = await txn.get(partnerRef);
-      if (!partnerSnap.exists || partnerSnap.data() == null) {
-        throw StateError('Partner profile is missing.');
-      }
-      if (partnerSnap.data()!['pairId'] != null) {
-        throw StateError('This user is already paired.');
-      }
+        final partnerRef = _users.doc(partnerUid);
+        final partnerSnap = await txn.get(partnerRef);
+        if (!partnerSnap.exists || partnerSnap.data() == null) {
+          throw StateError('Partner profile is missing.');
+        }
+        if (partnerSnap.data()!['pairId'] != null) {
+          throw StateError('This user is already paired.');
+        }
 
-      final pairRef = _pairs.doc();
-      final now = Timestamp.now();
-      txn.set(pairRef, {
-        'memberIds': [currentUid, partnerUid],
-        'createdAt': now,
-        'updatedAt': now,
+        final pairRef = _pairs.doc();
+        final now = Timestamp.now();
+        txn.set(pairRef, {
+          'memberIds': [currentUid, partnerUid],
+          'createdAt': now,
+          'updatedAt': now,
+        });
+        txn.update(meRef, {'pairId': pairRef.id, 'updatedAt': now});
+        txn.update(partnerRef, {'pairId': pairRef.id, 'updatedAt': now});
+
+        return Pair(
+          id: pairRef.id,
+          memberIds: [currentUid, partnerUid],
+          createdAt: now,
+          updatedAt: now,
+        );
       });
-      txn.update(meRef, {'pairId': pairRef.id, 'updatedAt': now});
-      txn.update(partnerRef, {'pairId': pairRef.id, 'updatedAt': now});
-
-      return Pair(
-        id: pairRef.id,
-        memberIds: [currentUid, partnerUid],
-        createdAt: now,
-        updatedAt: now,
-      );
-    });
+    } on FirebaseException catch (e) {
+      final code = e.code.toLowerCase();
+      if (code == 'permission-denied') {
+        throw StateError(
+          'Pairing is blocked by Firestore rules (permission-denied). '
+          'Please redeploy firestore rules and retry.',
+        );
+      }
+      throw StateError('Firestore error (${e.code}): ${e.message ?? 'Unknown error'}');
+    }
   }
 }

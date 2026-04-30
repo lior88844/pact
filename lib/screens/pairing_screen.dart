@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import '../models/user_profile.dart';
 
 class PairingScreen extends StatefulWidget {
@@ -37,7 +38,8 @@ class _PairingScreenState extends State<PairingScreen> {
     try {
       await widget.onPair(_inviteCodeCtrl.text.trim().toUpperCase());
     } catch (e) {
-      setState(() => _error = e.toString());
+      debugPrint('Pairing failed: $e');
+      if (mounted) setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -57,7 +59,7 @@ class _PairingScreenState extends State<PairingScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

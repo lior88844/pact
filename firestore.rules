@@ -26,9 +26,30 @@ service cloud.firestore {
         && request.auth.uid in get(/databases/$(database)/documents/pairs/$(pairId)).data.memberIds;
     }
 
+    function isPairLinkOnlyUpdate() {
+      return resource.data.pairId == null
+        && request.resource.data.pairId is string
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.displayName == resource.data.displayName
+        && request.resource.data.inviteCode == resource.data.inviteCode
+        && request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    function canAttachUserToPair(uid) {
+      let pairId = request.resource.data.pairId;
+      let pairPath = /databases/$(database)/documents/pairs/$(pairId);
+      return signedIn()
+        && existsAfter(pairPath)
+        && request.auth.uid in getAfter(pairPath).data.memberIds
+        && uid in getAfter(pairPath).data.memberIds;
+    }
+
     match /users/{uid} {
       allow read: if isSelf(uid) || (signedIn() && arePaired(request.auth.uid, uid));
-      allow create, update, delete: if isSelf(uid);
+      allow create, delete: if isSelf(uid);
+      allow update: if isSelf(uid)
+        || (isPairLinkOnlyUpdate() && canAttachUserToPair(uid));
     }
 
     match /inviteCodes/{code} {
