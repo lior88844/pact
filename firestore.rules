@@ -26,6 +26,11 @@ service cloud.firestore {
         && request.auth.uid in get(/databases/$(database)/documents/pairs/$(pairId)).data.memberIds;
     }
 
+    function hasOwnPair(pairId) {
+      return signedIn()
+        && userDoc(request.auth.uid).pairId == pairId;
+    }
+
     function isPairLinkOnlyUpdate() {
       let changed = request.resource.data.diff(resource.data).changedKeys();
       return resource.data.pairId == null
@@ -58,7 +63,7 @@ service cloud.firestore {
     }
 
     match /pairs/{pairId} {
-      allow read: if isPairMember(pairId);
+      allow read: if isPairMember(pairId) || hasOwnPair(pairId);
       allow create: if signedIn();
       allow update, delete: if false;
     }
@@ -68,11 +73,15 @@ service cloud.firestore {
         && (
           request.auth.uid == resource.data.userId
           || isPairMember(resource.data.pairId)
+          || hasOwnPair(resource.data.pairId)
         );
 
       allow create: if signedIn()
         && request.auth.uid == request.resource.data.userId
-        && isPairMember(request.resource.data.pairId);
+        && (
+          isPairMember(request.resource.data.pairId)
+          || hasOwnPair(request.resource.data.pairId)
+        );
 
       allow update, delete: if signedIn()
         && request.auth.uid == resource.data.userId;

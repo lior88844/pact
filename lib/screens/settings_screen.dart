@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:provider/provider.dart';
+import '../state/pact_state.dart';
 import '../theme/tokens.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -8,6 +10,8 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final state = context.watch<PactState>();
+
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: [
@@ -28,7 +32,10 @@ class SettingsScreen extends StatelessWidget {
               const SizedBox(height: 22),
 
               // Pact identity card
-              _PactCard()
+              _PactCard(
+                currentUserName: state.currentUserName,
+                partnerName: state.partnerName,
+              )
                   .animate(delay: 40.ms)
                   .fadeIn(duration: 320.ms, curve: Curves.easeOutCubic)
                   .moveY(begin: 6, end: 0, duration: 320.ms),
@@ -39,9 +46,9 @@ class SettingsScreen extends StatelessWidget {
               _SectionLabel(label: 'PACT'),
               const SizedBox(height: 10),
               _SettingsGroup(
-                rows: const [
-                  (icon: LucideIcons.user, label: 'Your profile', value: 'Alex'),
-                  (icon: LucideIcons.heart, label: 'Partner', value: 'Maya'),
+                rows: [
+                  (icon: LucideIcons.user, label: 'Your profile', value: state.currentUserName),
+                  (icon: LucideIcons.heart, label: 'Partner', value: state.partnerName),
                   (icon: LucideIcons.bell, label: 'Daily reminder', value: '7:00 AM'),
                   (icon: LucideIcons.lock, label: 'Privacy', value: null),
                 ],
@@ -76,8 +83,25 @@ class SettingsScreen extends StatelessWidget {
 }
 
 class _PactCard extends StatelessWidget {
+  final String currentUserName;
+  final String partnerName;
+
+  const _PactCard({
+    required this.currentUserName,
+    required this.partnerName,
+  });
+
+  String _initialFor(String name, {required String fallback}) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return fallback;
+    return String.fromCharCode(trimmed.runes.first).toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final currentInitial = _initialFor(currentUserName, fallback: 'Y');
+    final partnerInitial = _initialFor(partnerName, fallback: 'P');
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: cardDecoration(),
@@ -96,7 +120,7 @@ class _PactCard extends StatelessWidget {
             ),
             child: Center(
               child: Text(
-                'A · M',
+                '$currentInitial · $partnerInitial',
                 style: AppText.display(size: 16, weight: FontWeight.w700, color: AppColors.ink0),
               ),
             ),
@@ -106,7 +130,7 @@ class _PactCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Alex & Maya',
+                Text('$currentUserName & $partnerName',
                     style: AppText.display(size: 17, weight: FontWeight.w600, color: AppColors.ink0)),
                 const SizedBox(height: 2),
                 Text('Pact since Apr 5 · 23-day streak',
