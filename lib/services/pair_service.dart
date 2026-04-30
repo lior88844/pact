@@ -56,13 +56,6 @@ class PairService {
         }
 
         final partnerRef = _users.doc(partnerUid);
-        final partnerSnap = await txn.get(partnerRef);
-        if (!partnerSnap.exists || partnerSnap.data() == null) {
-          throw StateError('Partner profile is missing.');
-        }
-        if (partnerSnap.data()!['pairId'] != null) {
-          throw StateError('This user is already paired.');
-        }
 
         final pairRef = _pairs.doc();
         final now = Timestamp.now();
@@ -85,8 +78,9 @@ class PairService {
       final code = e.code.toLowerCase();
       if (code == 'permission-denied') {
         throw StateError(
-          'Pairing is blocked by Firestore rules (permission-denied). '
-          'Please redeploy firestore rules and retry.',
+          'Pairing failed due to Firestore permission rules. '
+          'This usually means the invite code is invalid, already paired, '
+          'or rules were not deployed yet.',
         );
       }
       throw StateError('Firestore error (${e.code}): ${e.message ?? 'Unknown error'}');
