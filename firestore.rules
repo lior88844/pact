@@ -27,13 +27,10 @@ service cloud.firestore {
     }
 
     function isPairLinkOnlyUpdate() {
+      let changed = request.resource.data.diff(resource.data).changedKeys();
       return resource.data.pairId == null
         && request.resource.data.pairId is string
-        && request.resource.data.uid == resource.data.uid
-        && request.resource.data.email == resource.data.email
-        && request.resource.data.displayName == resource.data.displayName
-        && request.resource.data.inviteCode == resource.data.inviteCode
-        && request.resource.data.createdAt == resource.data.createdAt;
+        && changed.hasOnly(['pairId', 'updatedAt']);
     }
 
     function canAttachUserToPair(uid) {
