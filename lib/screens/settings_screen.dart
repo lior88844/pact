@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import '../services/auth_service.dart';
 import '../state/pact_state.dart';
 import '../theme/tokens.dart';
 
@@ -11,6 +12,7 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<PactState>();
+    final authService = AuthService();
 
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
@@ -35,6 +37,8 @@ class SettingsScreen extends StatelessWidget {
               _PactCard(
                 currentUserName: state.currentUserName,
                 partnerName: state.partnerName,
+                pactSinceLabel: state.pactSinceLabel,
+                streakDays: state.currentStreakDays,
               )
                   .animate(delay: 40.ms)
                   .fadeIn(duration: 320.ms, curve: Curves.easeOutCubic)
@@ -66,7 +70,15 @@ class SettingsScreen extends StatelessWidget {
                 ],
               ).animate(delay: 120.ms).fadeIn(duration: 300.ms, curve: Curves.easeOutCubic),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 18),
+
+              _LogoutButton(
+                onLogout: () async {
+                  await authService.signOut();
+                },
+              ).animate(delay: 140.ms).fadeIn(duration: 280.ms, curve: Curves.easeOutCubic),
+
+              const SizedBox(height: 30),
 
               Center(
                 child: Text(
@@ -82,13 +94,45 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
+class _LogoutButton extends StatelessWidget {
+  final Future<void> Function() onLogout;
+
+  const _LogoutButton({required this.onLogout});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: onLogout,
+        icon: const Icon(LucideIcons.logOut, size: 16),
+        label: Text(
+          'Log out',
+          style: AppText.body(size: 14, weight: FontWeight.w600, color: AppColors.alert),
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.alert,
+          side: const BorderSide(color: AppColors.alert, width: 1),
+          backgroundColor: AppColors.bg1,
+          minimumSize: const Size.fromHeight(48),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+      ),
+    );
+  }
+}
+
 class _PactCard extends StatelessWidget {
   final String currentUserName;
   final String partnerName;
+  final String pactSinceLabel;
+  final int streakDays;
 
   const _PactCard({
     required this.currentUserName,
     required this.partnerName,
+    required this.pactSinceLabel,
+    required this.streakDays,
   });
 
   String _initialFor(String name, {required String fallback}) {
@@ -133,8 +177,12 @@ class _PactCard extends StatelessWidget {
                 Text('$currentUserName & $partnerName',
                     style: AppText.display(size: 17, weight: FontWeight.w600, color: AppColors.ink0)),
                 const SizedBox(height: 2),
-                Text('Pact since Apr 5 · 23-day streak',
-                    style: AppText.body(size: 12, color: AppColors.ink2)),
+                Text(
+                  streakDays > 0
+                      ? 'Pact since $pactSinceLabel · $streakDays-day streak'
+                      : 'Pact since $pactSinceLabel · No active streak',
+                  style: AppText.body(size: 12, color: AppColors.ink2),
+                ),
               ],
             ),
           ),

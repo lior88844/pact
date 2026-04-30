@@ -20,6 +20,7 @@ class PactState extends ChangeNotifier {
   UserProfile? me;
   UserProfile? partner;
   String? partnerUid;
+  DateTime? pactCreatedAt;
   bool isLoading = true;
   String? errorMessage;
 
@@ -82,6 +83,53 @@ class PactState extends ChangeNotifier {
   String get partnerName =>
       partner?.displayName.isNotEmpty == true ? partner!.displayName : 'Partner';
   String get partnerInviteCode => partner?.inviteCode ?? '';
+  String get pactSinceLabel {
+    final dt = pactCreatedAt ?? me?.createdAt?.toDate();
+    if (dt == null) return 'Unknown';
+    const months = <String>[
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${months[dt.month - 1]} ${dt.day}';
+  }
+
+  int get currentStreakDays {
+    if (historyEntries.isEmpty) return 0;
+    final activeByDate = <String, bool>{};
+    for (final entry in historyEntries) {
+      final existing = activeByDate[entry.date] ?? false;
+      activeByDate[entry.date] = existing || _entryHasActivity(entry);
+    }
+
+    var streak = 0;
+    var cursor = DateTime.now();
+    while (true) {
+      final ymd = _entryService.dateToLocalYmd(cursor);
+      if (activeByDate[ymd] != true) break;
+      streak++;
+      cursor = cursor.subtract(const Duration(days: 1));
+    }
+    return streak;
+  }
+
+  bool _entryHasActivity(DailyEntry entry) {
+    if (entry.state?.trim().isNotEmpty == true) return true;
+    for (final task in entry.tasks) {
+      if (task.done) return true;
+      if (task.title.trim().isNotEmpty) return true;
+    }
+    return false;
+  }
 
   Future<void> initialize(UserProfile profile) async {
     me = profile;
@@ -96,23 +144,46 @@ class PactState extends ChangeNotifier {
     errorMessage = null;
     notifyListeners();
     try {
-      me = await _userService.getByUid(profile.uid) ?? profile;
+      try {
+        me = await _userService.getByUid(profile.uid) ?? profile;
+      } catch (e) {
+        throw StateError('Failed loading current profile: $e');
+      }
       final pairId = me?.pairId;
       if (pairId == null) {
         throw StateError('Missing pair for current user.');
       }
+      final pair = await _pairService.getPair(pairId);
+      pactCreatedAt = pair?.createdAt?.toDate();
 
-      partnerUid = await _pairService.getPartnerUid(
-        pairId: pairId,
-        myUid: me!.uid,
-      );
+      try {
+        partnerUid = await _pairService.getPartnerUid(
+          pairId: pairId,
+          myUid: me!.uid,
+        );
+      } catch (e) {
+        throw StateError('Failed loading pair relationship: $e');
+      }
       if (partnerUid != null) {
-        partner = await _userService.getByUid(partnerUid!);
+        try {
+          partner = await _userService.getByUid(partnerUid!);
+        } catch (e) {
+          throw StateError('Failed loading partner profile: $e');
+        }
       }
 
-      await _loadSelectedDay();
-      await loadHistory();
+      try {
+        await _loadSelectedDay();
+      } catch (e) {
+        throw StateError('Failed loading today entry: $e');
+      }
+      try {
+        await loadHistory();
+      } catch (e) {
+        throw StateError('Failed loading history: $e');
+      }
     } catch (e) {
+      debugPrint('refreshSession failed: $e');
       errorMessage = e.toString();
     } finally {
       isLoading = false;
