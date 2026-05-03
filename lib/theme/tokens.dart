@@ -104,6 +104,22 @@ class AppText {
         color: color,
         letterSpacing: size * 0.16,
       );
+
+  static TextStyle editorial({
+    double size = 14,
+    FontWeight weight = FontWeight.w400,
+    Color color = AppColors.ink2,
+    FontStyle fontStyle = FontStyle.italic,
+    double height = 1.4,
+  }) =>
+      GoogleFonts.newsreader(
+        fontSize: size,
+        fontWeight: weight,
+        color: color,
+        fontStyle: fontStyle,
+        height: height,
+        letterSpacing: -0.14,
+      );
 }
 
 // ─── Card decoration ──────────────────────────────────────────────────────────

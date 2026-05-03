@@ -17,6 +17,13 @@ class UserService {
     return UserProfile.fromMap(snapshot.data()!);
   }
 
+  Stream<UserProfile?> watchByUid(String uid) {
+    return _users.doc(uid).snapshots().map((snap) {
+      if (!snap.exists || snap.data() == null) return null;
+      return UserProfile.fromMap(snap.data()!);
+    });
+  }
+
   Future<UserProfile?> getByInviteCode(String inviteCode) async {
     final code = inviteCode.trim().toUpperCase();
     if (code.isEmpty) return null;

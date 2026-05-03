@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import '../models/models.dart';
 import '../services/daily_entry_service.dart';
@@ -29,7 +31,8 @@ class PactState extends ChangeNotifier {
 
   // Today view
   bool isYouView = true;
-  int dayOffset = 0; // 0=today, -n=n days ago
+  int dayOffset = 0; // 0=today, -n=n days ago, +n=n days ahead
+  static const int maxFutureDayOffset = 7;
 
   List<Task> youTasks = makeFreshDay();
   List<Task> palTasks = makeFreshDay();
@@ -41,10 +44,13 @@ class PactState extends ChangeNotifier {
   final Map<int, DaySnapshot> _loadedSnapshots = {};
   List<DailyEntry> historyEntries = [];
   String? _activeYouEntryId;
+  StreamSubscription<DailyEntry?>? _youTodaySubscription;
+  StreamSubscription<DailyEntry?>? _partnerTodaySubscription;
 
   // ── Computed ──
   bool get isToday => dayOffset == 0;
   bool get isPast => dayOffset < 0;
+  bool get isFuture => dayOffset > 0;
   Set<int> get _pastLoggedOffsets {
     final today = DateTime.now();
     final result = <int>{};
@@ -63,8 +69,8 @@ class PactState extends ChangeNotifier {
     }
     return result;
   }
-  bool get canGoBack => _previousLoggedOffset(dayOffset) != null;
-  bool get canGoForward => dayOffset < 0;
+  bool get canGoBack => dayOffset > 0 || _previousLoggedOffset(dayOffset) != null;
+  bool get canGoForward => dayOffset < maxFutureDayOffset;
 
   DaySnapshot? get pastSnapshot => isPast ? _loadedSnapshots[dayOffset] : null;
 
@@ -97,7 +103,7 @@ class PactState extends ChangeNotifier {
 
   int get activeDone => isYouView ? youDone : palDone;
 
-  bool get canEdit => isToday && isYouView;
+  bool get canEdit => (isToday || isFuture) && isYouView;
 
   String get currentUserName => me?.displayName.isNotEmpty == true ? me!.displayName : 'You';
   String get partnerName =>
@@ -220,36 +226,64 @@ class PactState extends ChangeNotifier {
 
   Future<void> _loadSelectedDay() async {
     if (me == null || me!.pairId == null) return;
+    await _cancelTodaySubscriptions();
     final date = _entryService.dateToLocalYmd(DateTime.now().add(Duration(days: dayOffset)));
-    final myEntry = dayOffset == 0
-        ? await _entryService.getOrCreateEntry(
-            userId: me!.uid,
-            pairId: me!.pairId!,
-            date: date,
-          )
-        : await _entryService.getEntryByUserAndDate(
-            userId: me!.uid,
-            date: date,
-          );
-    final partnerEntry = partnerUid == null
-        ? null
-        : await _entryService.getEntryByUserAndDate(
-            userId: partnerUid!,
-            date: date,
-          );
-
-    final youList = myEntry == null ? <Task>[] : _toUiTasks(myEntry.tasks);
-    final palList = partnerEntry == null ? makeFreshDay() : _toUiTasks(partnerEntry.tasks);
-    final youMoodValue = _moodFromString(myEntry?.state);
-    final palMoodValue = _moodFromString(partnerEntry?.state);
-
     if (dayOffset == 0) {
-      _activeYouEntryId = myEntry?.id;
+      final myEntry = await _entryService.getOrCreateEntry(
+        userId: me!.uid,
+        pairId: me!.pairId!,
+        date: date,
+      );
+      final partnerEntry = partnerUid == null
+          ? null
+          : await _entryService.getEntryByUserAndDate(
+              userId: partnerUid!,
+              date: date,
+            );
+
+      final youList = _toUiTasks(myEntry.tasks);
+      final palList = partnerEntry == null ? makeFreshDay() : _toUiTasks(partnerEntry.tasks);
+      _activeYouEntryId = myEntry.id;
       youTasks = youList;
       palTasks = palList;
-      youMood = youMoodValue;
-      palMood = palMoodValue;
+      youMood = _moodFromString(myEntry.state);
+      palMood = _moodFromString(partnerEntry?.state);
+      _subscribeToTodayEntries(date: date);
+    } else if (dayOffset > 0) {
+      final myEntry = await _entryService.getOrCreateEntry(
+        userId: me!.uid,
+        pairId: me!.pairId!,
+        date: date,
+      );
+      final partnerEntry = partnerUid == null
+          ? null
+          : await _entryService.getEntryByUserAndDate(
+              userId: partnerUid!,
+              date: date,
+            );
+
+      _activeYouEntryId = myEntry.id;
+      youTasks = _toUiTasks(myEntry.tasks);
+      palTasks = partnerEntry == null ? makeFreshDay() : _toUiTasks(partnerEntry.tasks);
+      youMood = _moodFromString(myEntry.state);
+      palMood = _moodFromString(partnerEntry?.state);
     } else {
+      final myEntry = await _entryService.getEntryByUserAndDate(
+        userId: me!.uid,
+        date: date,
+      );
+      final partnerEntry = partnerUid == null
+          ? null
+          : await _entryService.getEntryByUserAndDate(
+              userId: partnerUid!,
+              date: date,
+            );
+
+      final youList = myEntry == null ? <Task>[] : _toUiTasks(myEntry.tasks);
+      final palList = partnerEntry == null ? makeFreshDay() : _toUiTasks(partnerEntry.tasks);
+      final youMoodValue = _moodFromString(myEntry?.state);
+      final palMoodValue = _moodFromString(partnerEntry?.state);
+
       _loadedSnapshots[dayOffset] = DaySnapshot(
         youTasks: youList,
         palTasks: palList,
@@ -257,6 +291,38 @@ class PactState extends ChangeNotifier {
         palMood: palMoodValue,
       );
     }
+  }
+
+  Future<void> _cancelTodaySubscriptions() async {
+    await _youTodaySubscription?.cancel();
+    await _partnerTodaySubscription?.cancel();
+    _youTodaySubscription = null;
+    _partnerTodaySubscription = null;
+  }
+
+  void _subscribeToTodayEntries({required String date}) {
+    final currentUser = me;
+    if (currentUser == null) return;
+
+    _youTodaySubscription = _entryService
+        .watchEntryByUserAndDate(userId: currentUser.uid, date: date)
+        .listen((entry) {
+          if (entry == null) return;
+          _activeYouEntryId = entry.id;
+          youTasks = _toUiTasks(entry.tasks);
+          youMood = _moodFromString(entry.state);
+          notifyListeners();
+        });
+
+    final currentPartnerUid = partnerUid;
+    if (currentPartnerUid == null) return;
+    _partnerTodaySubscription = _entryService
+        .watchEntryByUserAndDate(userId: currentPartnerUid, date: date)
+        .listen((entry) {
+          palTasks = entry == null ? makeFreshDay() : _toUiTasks(entry.tasks);
+          palMood = _moodFromString(entry?.state);
+          notifyListeners();
+        });
   }
 
   List<Task> _toUiTasks(List<TaskItem> items) {
@@ -301,7 +367,8 @@ class PactState extends ChangeNotifier {
   }
 
   void setDayOffset(int offset) {
-    dayOffset = offset > 0 ? 0 : offset;
+    final next = offset > maxFutureDayOffset ? maxFutureDayOffset : offset;
+    dayOffset = next;
     _loadSelectedDay().then((_) => notifyListeners());
     notifyListeners();
   }
@@ -335,8 +402,20 @@ class PactState extends ChangeNotifier {
   }
 
   void goToNextAvailableDay() {
-    if (dayOffset >= 0) return;
-    setDayOffset(_nextForwardOffset(dayOffset));
+    if (dayOffset >= maxFutureDayOffset) return;
+    if (dayOffset < 0) {
+      setDayOffset(_nextForwardOffset(dayOffset));
+    } else {
+      setDayOffset(dayOffset + 1);
+    }
+  }
+
+  void goBackOneStep() {
+    if (dayOffset > 0) {
+      setDayOffset(dayOffset - 1);
+      return;
+    }
+    goToPreviousLoggedDay();
   }
 
   void setYouMood(MoodState? mood) {
@@ -412,5 +491,11 @@ class PactState extends ChangeNotifier {
       updatedAt: profile.updatedAt,
     );
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    unawaited(_cancelTodaySubscriptions());
+    super.dispose();
   }
 }

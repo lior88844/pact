@@ -10,6 +10,7 @@ import 'screens/today_screen.dart';
 import 'state/pact_state.dart';
 import 'theme/tokens.dart';
 import 'widgets/bottom_nav.dart';
+import 'widgets/pact_stage_background.dart';
 
 class PactApp extends StatelessWidget {
   const PactApp({super.key});
@@ -71,7 +72,7 @@ class _PactShell extends StatelessWidget {
       body: Stack(
         children: [
           // ── Background gradient ─────────────────────────────────────
-          Positioned.fill(child: _AppBackground()),
+          Positioned.fill(child: PactStageBackground()),
 
           // ── Screens ────────────────────────────────────────────────
           IndexedStack(
@@ -97,23 +98,3 @@ class _PactShell extends StatelessWidget {
   }
 }
 
-// Warm-top, cool-bottom gradient matching the HTML prototype
-class _AppBackground extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          stops: [0.0, 0.35, 1.0],
-          colors: [
-            Color(0xFFEFE8D4), // warm cream — top radial approximation
-            Color(0xFFFAF9F6), // bg0 neutral
-            Color(0xFFE5EBF3), // cool blue — bottom radial approximation
-          ],
-        ),
-      ),
-    );
-  }
-}

@@ -5,7 +5,6 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../features/insights/insight_service.dart';
 import '../features/insights/repositories/local_insight_repository.dart';
-import '../models/models.dart';
 import '../state/pact_state.dart';
 import '../theme/tokens.dart';
 import '../widgets/daily_insight_card.dart';
@@ -70,7 +69,7 @@ class TodayScreen extends StatelessWidget {
                     isPast: isPast,
                     dayOffset: state.dayOffset,
                     canGoBack: state.canGoBack,
-                    onBack: () { HapticFeedback.lightImpact(); state.goToPreviousLoggedDay(); },
+                    onBack: () { HapticFeedback.lightImpact(); state.goBackOneStep(); },
                     onForward: state.canGoForward
                         ? () { HapticFeedback.lightImpact(); state.goToNextAvailableDay(); }
                         : null,
@@ -138,8 +137,10 @@ class TodayScreen extends StatelessWidget {
                     selected: state.activeMood,
                     readOnly: !state.canEdit,
                     label: isYou
-                        ? (isToday ? 'HOW ARE YOU TODAY?' : 'HOW YOU FELT')
-                        : (isToday ? '${state.partnerName.toUpperCase()} IS FEELING…' : '${state.partnerName.toUpperCase()} FELT'),
+                        ? (isToday || state.isFuture ? 'HOW ARE YOU TODAY?' : 'HOW YOU FELT')
+                        : (isToday || state.isFuture
+                            ? '${state.partnerName.toUpperCase()} IS FEELING…'
+                            : '${state.partnerName.toUpperCase()} FELT'),
                     onChanged: state.canEdit ? state.setYouMood : null,
                   )
                       .animate(delay: 60.ms)
@@ -247,7 +248,7 @@ class _DateHeader extends StatelessWidget {
               onTap: onBack,
             ),
             const SizedBox(width: 6),
-            // Forward arrow (only visible on past days)
+            // Forward arrow (disabled at max future offset)
             _NavArrow(
               icon: LucideIcons.chevronRight,
               enabled: onForward != null,

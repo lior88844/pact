@@ -81,6 +81,17 @@ class DailyEntryService {
     return DailyEntry.fromMap(doc.data()!);
   }
 
+  Stream<DailyEntry?> watchEntryByUserAndDate({
+    required String userId,
+    required String date,
+  }) {
+    final id = buildEntryId(userId, date);
+    return _entries.doc(id).snapshots().map((snapshot) {
+      if (!snapshot.exists || snapshot.data() == null) return null;
+      return DailyEntry.fromMap(snapshot.data()!);
+    });
+  }
+
   Future<List<DailyEntry>> getRecentEntries({
     required String userId,
     int limit = 7,
